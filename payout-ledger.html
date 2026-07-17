@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payout Ledger — User Payout Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12201B;
+    --surface:#1B2C24;
+    --surface-raised:#223327;
+    --paper:#EFE9D8;
+    --paper-line:#D8CFB3;
+    --brass:#C6A15B;
+    --brass-dim:#8a7343;
+    --text:#EDEAE0;
+    --muted:#93A69A;
+    --credit:#6FA98A;
+    --debit:#C1654A;
+    --border:#2E4438;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, #17271F 0%, var(--ink) 55%);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  a{color:var(--brass);}
+
+  /* ---------- Header / hero ---------- */
+  header.hero{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:24px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border);
+    padding-bottom:28px;margin-bottom:28px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:.14em;text-transform:uppercase;
+    color:var(--brass);font-size:12px;margin-bottom:10px;
+  }
+  h1{
+    font-family:'Spectral',serif;font-weight:600;
+    font-size:clamp(28px,4vw,42px);margin:0 0 6px;
+    letter-spacing:.01em;
+  }
+  .sub{color:var(--muted);font-size:14.5px;max-width:520px;line-height:1.5;}
+  .hero-stat{
+    text-align:right;font-family:'IBM Plex Mono',monospace;
+  }
+  .hero-stat .amt{
+    font-size:38px;color:var(--brass);font-weight:600;line-height:1;
+  }
+  .hero-stat .label{
+    color:var(--muted);font-size:11.5px;letter-spacing:.08em;
+    text-transform:uppercase;margin-top:6px;
+  }
+
+  /* ---------- User tabs ---------- */
+  .user-tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .user-tab{
+    background:var(--surface);border:1px solid var(--border);
+    color:var(--muted);padding:9px 16px;border-radius:999px;
+    font-size:13.5px;cursor:pointer;font-family:'IBM Plex Sans';
+    transition:.15s;
+  }
+  .user-tab:hover{border-color:var(--brass-dim);color:var(--text);}
+  .user-tab.active{
+    background:var(--brass);color:#1B2C24;border-color:var(--brass);
+    font-weight:600;
+  }
+
+  /* ---------- Layout grid ---------- */
+  .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:880px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;
+  }
+  .card h2{
+    font-family:'Spectral',serif;font-weight:600;font-size:18px;margin:0 0 4px;
+  }
+  .card .hint{color:var(--muted);font-size:12.5px;margin-bottom:14px;line-height:1.5;}
+
+  /* balance card */
+  .balance-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+  .balance-amt{font-family:'IBM Plex Mono',monospace;font-size:30px;color:var(--credit);font-weight:600;}
+  .balance-amt.negative{color:var(--debit);}
+  .balance-label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}
+  .cooldown{
+    margin-top:10px;font-size:12.5px;color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  /* sales table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;color:var(--muted);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em;
+    border-bottom:1px solid var(--border);padding:6px 8px;
+  }
+  td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04);
+     font-family:'IBM Plex Mono',monospace;font-size:13px;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .status-pill{
+    display:inline-block;padding:3px 10px;border-radius:999px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;
+    text-transform:uppercase;border:1px solid transparent;
+  }
+  .status-pending{background:#3a3320;color:#E0C266;border-color:#5a4d2a;}
+  .status-approved{background:#1f3a2c;color:var(--credit);border-color:#2f5540;}
+  .status-rejected{background:#3a2420;color:var(--debit);border-color:#5a352c;}
+  .row-actions button{margin-right:4px;}
+
+  button{
+    font-family:'IBM Plex Sans';font-size:12.5px;font-weight:500;
+    padding:6px 12px;border-radius:6px;border:1px solid var(--border);
+    background:var(--surface-raised);color:var(--text);cursor:pointer;
+    transition:.12s;
+  }
+  button:hover:not(:disabled){border-color:var(--brass-dim);color:var(--brass);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  button.primary{background:var(--brass);color:#1B2C24;border-color:var(--brass);font-weight:600;}
+  button.primary:hover:not(:disabled){filter:brightness(1.08);color:#1B2C24;}
+  button.ghost-credit{color:var(--credit);}
+  button.ghost-debit{color:var(--debit);}
+
+  .form-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .form-row input, .form-row select{
+    background:var(--ink);border:1px solid var(--border);color:var(--text);
+    padding:7px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;
+    font-size:13px;flex:1;min-width:90px;
+  }
+
+  .empty{color:var(--muted);font-size:13px;padding:14px 4px;font-style:italic;}
+
+  /* ---------- Ledger (signature element) ---------- */
+  .ledger{
+    background:var(--paper);color:#2B2620;border-radius:var(--radius);
+    padding:26px 30px 30px;
+    background-image:repeating-linear-gradient(
+      to bottom, transparent, transparent 33px, var(--paper-line) 34px
+    );
+    background-position:0 58px;
+    position:relative;
+    overflow:hidden;
+  }
+  .ledger::before{
+    content:"";position:absolute;left:64px;top:0;bottom:0;width:1px;
+    background:#C6543E55;
+  }
+  .ledger h2{
+    font-family:'Spectral',serif;color:#2B2620;font-size:19px;margin:0 0 2px;
+  }
+  .ledger .hint{color:#6b6152;font-size:12px;margin-bottom:16px;}
+  .ledger-table{width:100%;border-collapse:collapse;font-size:12.5px;position:relative;}
+  .ledger-table th{
+    color:#8a7c63;border-bottom:1px solid #C9BE9E;text-transform:uppercase;
+    letter-spacing:.06em;font-size:10.5px;padding:4px 8px 8px;
+  }
+  .ledger-table td{
+    padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#3A332A;
+    border-bottom:none;vertical-align:top;
+  }
+  .ledger-table tr{height:34px;}
+  .ledger-credit{color:#3E6B4E;font-weight:600;}
+  .ledger-debit{color:#A5452F;font-weight:600;}
+  .ledger-stamp{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+    letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;
+    border:1px solid currentColor;border-radius:3px;transform:rotate(-2deg);
+  }
+  .ledger-scroll{max-height:340px;overflow-y:auto;padding-right:6px;}
+  .ledger-scroll::-webkit-scrollbar{width:8px;}
+  .ledger-scroll::-webkit-scrollbar-thumb{background:#C9BE9E;border-radius:4px;}
+
+  footer{
+    margin-top:36px;color:var(--muted);font-size:12px;text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  code{font-family:'IBM Plex Mono',monospace;color:var(--brass);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <div class="eyebrow">User Payout Management — Working Demo</div>
+      <h1>The Payout Ledger</h1>
+      <div class="sub">An in-browser reference implementation of the advance payout,
+        reconciliation, withdrawal and failed-payout-recovery flows described in the
+        LLD. All state lives in memory in this tab — refresh to reset.</div>
+    </div>
+    <div class="hero-stat">
+      <div class="amt" id="heroAmt">₹0</div>
+      <div class="label">Eligible for advance payout, all users</div>
+    </div>
+  </header>
+
+  <div class="user-tabs" id="userTabs"></div>
+
+  <div class="grid">
+    <!-- LEFT: sales + add sale -->
+    <div>
+      <div class="card">
+        <h2>Sales</h2>
+        <div class="hint">Every sale starts <strong>pending</strong>. Reconcile a sale to move it to
+          approved or rejected — the final payout accounts for any advance already paid.</div>
+        <table>
+          <thead>
+            <tr><th>Sale</th><th>Brand</th><th>Earning</th><th>Advance</th><th>Status</th><th>Reconcile</th></tr>
+          </thead>
+          <tbody id="salesBody"></tbody>
+        </table>
+        <div class="form-row">
+          <select id="newBrand">
+            <option>brand_1</option><option>brand_2</option><option>brand_3</option>
+          </select>
+          <input id="newEarning" type="number" min="1" placeholder="earning ₹" value="40">
+          <button class="primary" onclick="addSale()">+ Add pending sale</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Advance payout job</h2>
+        <div class="hint">Simulates the batch job. Pays 10% of earnings on every pending sale that
+          hasn't already received an advance — safe to run repeatedly (idempotent per sale).</div>
+        <button class="primary" onclick="runAdvanceJob()">Run advance payout job</button>
+        <span id="advanceJobMsg" style="margin-left:10px;color:var(--muted);font-size:12.5px;"></span>
+      </div>
+    </div>
+
+    <!-- RIGHT: balance, withdraw, payouts -->
+    <div>
+      <div class="card">
+        <h2>Withdrawable balance</h2>
+        <div class="balance-row">
+          <div class="balance-amt" id="balanceAmt">₹0</div>
+          <div class="balance-label">current user</div>
+        </div>
+        <div class="cooldown" id="cooldownMsg"></div>
+        <div class="form-row">
+          <input id="withdrawAmt" type="number" min="1" placeholder="amount ₹">
+          <button class="primary" onclick="requestWithdrawal()">Withdraw</button>
+        </div>
+        <div class="form-row">
+          <button onclick="skip24h()">⏩ Fast-forward 24 hours</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Payouts &amp; recovery</h2>
+        <div class="hint">A withdrawal starts <strong>processing</strong>. If it later fails,
+          is cancelled, or is rejected, the amount is credited straight back to the
+          withdrawable balance and a new withdrawal can be initiated for it immediately.</div>
+        <table>
+          <thead><tr><th>Payout</th><th>Amount</th><th>Status</th><th>Simulate outcome</th></tr></thead>
+          <tbody id="payoutsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="ledger">
+    <h2>Transaction ledger</h2>
+    <div class="hint">Every balance-affecting event across all users, oldest last.</div>
+    <div class="ledger-scroll">
+      <table class="ledger-table">
+        <thead><tr><th style="width:120px">Time</th><th style="width:70px">User</th><th>Entry</th><th style="width:90px">Debit</th><th style="width:90px">Credit</th><th style="width:100px">Balance</th></tr></thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Reference implementation only — schema, class design and API spec live alongside this file in the repo.</footer>
+</div>
+
+<script>
+/* ============================================================
+   DOMAIN MODEL
+   ============================================================ */
+
+let virtualNow = Date.now();
+let idCounter = 1;
+const nextId = (p) => p + (idCounter++);
+
+const WITHDRAWAL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const ADVANCE_RATE = 0.10;
+
+class User {
+  constructor(id, name){
+    this.id = id;
+    this.name = name;
+    this.balance = 0;          // withdrawable balance, in rupees
+    this.lastWithdrawalAt = null;
+  }
+}
+
+class Sale {
+  constructor(id, userId, brand, earning){
+    this.id = id;
+    this.userId = userId;
+    this.brand = brand;
+    this.earning = earning;
+    this.status = 'pending';   // pending | approved | rejected
+    this.advancePaid = 0;
+    this.advanceTransferred = false;
+    this.reconciled = false;
+  }
+}
+
+class Payout {
+  constructor(id, userId, amount){
+    this.id = id;
+    this.userId = userId;
+    this.amount = amount;
+    this.status = 'processing'; // processing | completed | failed | cancelled | rejected
+    this.createdAt = virtualNow;
+  }
+}
+
+const state = {
+  users: {},
+  sales: [],
+  payouts: [],
+  ledger: [],
+};
+
+function ledgerEntry(userId, note, debit, credit){
+  const user = state.users[userId];
+  state.ledger.unshift({
+    id: nextId('L'),
+    ts: virtualNow,
+    userId,
+    note,
+    debit,
+    credit,
+    balanceAfter: user.balance,
+  });
+}
+
+function credit(userId, amount, note){
+  const user = state.users[userId];
+  user.balance = round2(user.balance + amount);
+  ledgerEntry(userId, note, 0, amount);
+}
+
+function debit(userId, amount, note){
+  const user = state.users[userId];
+  user.balance = round2(user.balance - amount); // can go negative: represents a recoverable debt
+  ledgerEntry(userId, note, amount, 0);
+}
+
+function round2(n){ return Math.round(n * 100) / 100; }
+
+/* ---------- seed data ---------- */
+function seed(){
+  const john = new User('john_doe', 'John Doe');
+  const priya = new User('priya_k', 'Priya K');
+  state.users[john.id] = john;
+  state.users[priya.id] = priya;
+
+  [40,40,40].forEach(e => state.sales.push(new Sale(nextId('S'), 'john_doe', 'brand_1', e)));
+  state.sales.push(new Sale(nextId('S'), 'priya_k', 'brand_2', 120));
+  state.sales.push(new Sale(nextId('S'), 'priya_k', 'brand_3', 60));
+}
+seed();
+
+let activeUserId = 'john_doe';
+
+/* ============================================================
+   BUSINESS LOGIC
+   ============================================================ */
+
+// 1. Advance payout job — idempotent per sale
+function runAdvanceJob(){
+  let count = 0, total = 0;
+  state.sales.forEach(sale => {
+    if (sale.status === 'pending' && !sale.advanceTransferred){
+      const advance = round2(sale.earning * ADVANCE_RATE);
+      sale.advancePaid = advance;
+      sale.advanceTransferred = true;
+      credit(sale.userId, advance, `Advance payout — sale ${sale.id} (${sale.brand})`);
+      count++; total += advance;
+    }
+  });
+  document.getElementById('advanceJobMsg').textContent =
+    count ? `Paid advances on ${count} sale(s), total ₹${round2(total)}.` : 'Nothing to do — no unpaid pending sales.';
+  render();
+}
+
+// 2. Reconciliation
+function reconcileSale(saleId, decision){
+  const sale = state.sales.find(s => s.id === saleId);
+  if (!sale || sale.reconciled) return;
+
+  sale.status = decision;
+  sale.reconciled = true;
+
+  if (decision === 'approved'){
+    const remaining = round2(sale.earning - sale.advancePaid);
+    if (remaining > 0) credit(sale.userId, remaining, `Final payout — sale ${sale.id} approved`);
+    // if remaining is 0 (advance == earning), no ledger entry needed
+  } else if (decision === 'rejected'){
+    if (sale.advancePaid > 0){
+      debit(sale.userId, sale.advancePaid, `Advance clawback — sale ${sale.id} rejected`);
+    }
+  }
+  render();
+}
+
+// 3. Withdrawal, restricted to one per 24h
+function requestWithdrawal(){
+  const user = state.users[activeUserId];
+  const amt = round2(parseFloat(document.getElementById('withdrawAmt').value));
+  if (!amt || amt <= 0){ alert('Enter a valid amount.'); return; }
+  if (amt > user.balance){ alert('Amount exceeds withdrawable balance.'); return; }
+  if (user.lastWithdrawalAt && (virtualNow - user.lastWithdrawalAt) < WITHDRAWAL_COOLDOWN_MS){
+    alert('Only one withdrawal allowed every 24 hours. Use "Fast-forward 24 hours" to simulate the wait.');
+    return;
+  }
+  const payout = new Payout(nextId('P'), activeUserId, amt);
+  state.payouts.unshift(payout);
+  user.lastWithdrawalAt = virtualNow;
+  debit(activeUserId, amt, `Withdrawal initiated — payout ${payout.id}`);
+  document.getElementById('withdrawAmt').value = '';
+  render();
+}
+
+// 4. Failed payout recovery
+function simulateOutcome(payoutId, outcome){
+  const payout = state.payouts.find(p => p.id === payoutId);
+  if (!payout || payout.status !== 'processing') return;
+  payout.status = outcome;
+  if (outcome === 'completed') {
+    ledgerEntry(payout.userId, `Payout ${payout.id} completed`, 0, 0);
+  } else {
+    // cancelled / rejected / failed -> credit back, and DO NOT set lastWithdrawalAt,
+    // so the user can immediately re-initiate a withdrawal for the recovered amount.
+    credit(payout.userId, payout.amount, `Recovered — payout ${payout.id} ${outcome}`);
+    state.users[payout.userId].lastWithdrawalAt = null;
+  }
+  render();
+}
+
+function addSale(){
+  const brand = document.getElementById('newBrand').value;
+  const earning = round2(parseFloat(document.getElementById('newEarning').value));
+  if (!earning || earning <= 0){ alert('Enter a valid earning amount.'); return; }
+  state.sales.unshift(new Sale(nextId('S'), activeUserId, brand, earning));
+  render();
+}
+
+function skip24h(){
+  virtualNow += WITHDRAWAL_COOLDOWN_MS;
+  render();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+function fmt(n){
+  const sign = n < 0 ? '-' : '';
+  return `${sign}₹${Math.abs(round2(n)).toFixed(2).replace(/\.00$/,'')}`;
+}
+
+function render(){
+  // hero stat: total pending, un-advanced earnings * 10%
+  const eligible = state.sales
+    .filter(s => s.status === 'pending' && !s.advanceTransferred)
+    .reduce((sum, s) => sum + s.earning * ADVANCE_RATE, 0);
+  document.getElementById('heroAmt').textContent = fmt(eligible);
+
+  // user tabs
+  const tabs = document.getElementById('userTabs');
+  tabs.innerHTML = '';
+  Object.values(state.users).forEach(u => {
+    const b = document.createElement('button');
+    b.className = 'user-tab' + (u.id === activeUserId ? ' active' : '');
+    b.textContent = `${u.name} · ${fmt(u.balance)}`;
+    b.onclick = () => { activeUserId = u.id; render(); };
+    tabs.appendChild(b);
+  });
+
+  const user = state.users[activeUserId];
+
+  // balance card
+  const balEl = document.getElementById('balanceAmt');
+  balEl.textContent = fmt(user.balance);
+  balEl.classList.toggle('negative', user.balance < 0);
+
+  const cooldownEl = document.getElementById('cooldownMsg');
+  if (user.lastWithdrawalAt && (virtualNow - user.lastWithdrawalAt) < WITHDRAWAL_COOLDOWN_MS){
+    const remainMs = WITHDRAWAL_COOLDOWN_MS - (virtualNow - user.lastWithdrawalAt);
+    const hrs = Math.ceil(remainMs / (60*60*1000));
+    cooldownEl.textContent = `Next withdrawal available in ~${hrs}h.`;
+  } else {
+    cooldownEl.textContent = 'Withdrawal available now.';
+  }
+
+  // sales table (active user only)
+  const salesBody = document.getElementById('salesBody');
+  const userSales = state.sales.filter(s => s.userId === activeUserId);
+  salesBody.innerHTML = userSales.length ? '' : '';
+  if (!userSales.length){
+    salesBody.innerHTML = `<tr><td colspan="6" class="empty">No sales yet for this user.</td></tr>`;
+  } else {
+    userSales.forEach(s => {
+      const tr = document.createElement('tr');
+      const pillClass = s.status === 'pending' ? 'status-pending' : s.status === 'approved' ? 'status-approved' : 'status-rejected';
+      tr.innerHTML = `
+        <td>${s.id}</td>
+        <td>${s.brand}</td>
+        <td>${fmt(s.earning)}</td>
+        <td>${s.advanceTransferred ? fmt(s.advancePaid) : '—'}</td>
+        <td><span class="status-pill ${pillClass}">${s.status}</span></td>
+        <td class="row-actions"></td>
+      `;
+      const actionsTd = tr.querySelector('.row-actions');
+      if (!s.reconciled){
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'ghost-credit';
+        approveBtn.textContent = 'Approve';
+        approveBtn.onclick = () => reconcileSale(s.id, 'approved');
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'ghost-debit';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.onclick = () => reconcileSale(s.id, 'rejected');
+        actionsTd.appendChild(approveBtn);
+        actionsTd.appendChild(rejectBtn);
+      } else {
+        actionsTd.innerHTML = '<span style="color:var(--muted);font-family:IBM Plex Mono, monospace;font-size:12px;">reconciled</span>';
+      }
+      salesBody.appendChild(tr);
+    });
+  }
+
+  // payouts table
+  const payoutsBody = document.getElementById('payoutsBody');
+  const userPayouts = state.payouts.filter(p => p.userId === activeUserId);
+  payoutsBody.innerHTML = '';
+  if (!userPayouts.length){
+    payoutsBody.innerHTML = `<tr><td colspan="4" class="empty">No withdrawals yet for this user.</td></tr>`;
+  } else {
+    userPayouts.forEach(p => {
+      const tr = document.createElement('tr');
+      const pillClass = p.status === 'completed' ? 'status-approved' : p.status === 'processing' ? 'status-pending' : 'status-rejected';
+      tr.innerHTML = `
+        <td>${p.id}</td>
+        <td>${fmt(p.amount)}</td>
+        <td><span class="status-pill ${pillClass}">${p.status}</span></td>
+        <td class="row-actions"></td>
+      `;
+      const actionsTd = tr.querySelector('.row-actions');
+      if (p.status === 'processing'){
+        [['completed','Complete','ghost-credit'],['failed','Fail','ghost-debit'],
+         ['cancelled','Cancel','ghost-debit'],['rejected','Reject','ghost-debit']].forEach(([outcome,label,cls]) => {
+          const btn = document.createElement('button');
+          btn.className = cls;
+          btn.textContent = label;
+          btn.onclick = () => simulateOutcome(p.id, outcome);
+          actionsTd.appendChild(btn);
+        });
+      } else {
+        actionsTd.innerHTML = '<span style="color:var(--muted);font-family:IBM Plex Mono, monospace;font-size:12px;">final</span>';
+      }
+      payoutsBody.appendChild(tr);
+    });
+  }
+
+  // ledger (all users)
+  const ledgerBody = document.getElementById('ledgerBody');
+  ledgerBody.innerHTML = '';
+  if (!state.ledger.length){
+    ledgerBody.innerHTML = `<tr><td colspan="6" style="color:#8a7c63;font-style:italic;">No entries yet — run the advance payout job to get started.</td></tr>`;
+  } else {
+    state.ledger.forEach(e => {
+      const tr = document.createElement('tr');
+      const d = new Date(e.ts);
+      const timeStr = d.toLocaleString(undefined, {month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+      tr.innerHTML = `
+        <td>${timeStr}</td>
+        <td>${e.userId}</td>
+        <td>${e.note}</td>
+        <td class="ledger-debit">${e.debit ? fmt(e.debit) : ''}</td>
+        <td class="ledger-credit">${e.credit ? fmt(e.credit) : ''}</td>
+        <td>${fmt(e.balanceAfter)}</td>
+      `;
+      ledgerBody.appendChild(tr);
+    });
+  }
+}
+
+render();
+</script>
+</body>
+</html>
